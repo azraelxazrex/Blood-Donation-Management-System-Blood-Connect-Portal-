@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Identity Verification - LifeBlood Bank{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-tint"></i> LifeBlood Admin</h2>
+        </div>
+        
+        <div class="sidebar-menu">
+            <a href="{{ url_for('admin_dashboard') }}" class="menu-item">
+                <i class="fas fa-th-large"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_donors') }}" class="menu-item">
+                <i class="fas fa-users"></i> Donor Management
+            </a>
+            <a href="{{ url_for('admin_identity_verification') }}" class="menu-item active">
+                <i class="fas fa-id-card"></i> Identity Verification
+            </a>
+            <a href="{{ url_for('admin_inventory') }}" class="menu-item">
+                <i class="fas fa-warehouse"></i> Inventory
+            </a>
+            <a href="{{ url_for('admin_requests') }}" class="menu-item">
+                <i class="fas fa-hand-holding-heart"></i> Requests
+            </a>
+            <a href="{{ url_for('admin_analytics') }}" class="menu-item">
+                <i class="fas fa-chart-bar"></i> Analytics
+            </a>
+            <a href="{{ url_for('admin_identity_verification') }}" class="menu-item">
+    <i class="fas fa-id-card"></i> Identity Verification
+</a>
+            <a href="{{ url_for('logout') }}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="topbar">
+            <div class="topbar-left">
+                <h1>Identity Verification</h1>
+            </div>
+            
+            <div class="topbar-right">
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <div>{{ current_user.first_name }} {{ current_user.last_name }}</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="page-title">
+                <h2>Pending Identity Verifications</h2>
+                <div>Verify donor identity proofs</div>
+            </div>
+            
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Pending Verifications</h3>
+                    <div>
+                        <select id="status-filter" class="form-control" style="width: 150px;">
+                            <option value="pending">Pending</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Donor ID</th>
+                            <th>Donor Name</th>
+                            <th>Document Type</th>
+                            <th>Document Number</th>
+                            <th>Submitted On</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="verification-table-body">
+                        <!-- Data will be loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Modal -->
+<div id="verification-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Verify Identity Proof</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div id="verification-details">
+            <!-- Details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Load pending verifications
+document.addEventListener('DOMContentLoaded', function() {
+    loadPendingVerifications();
+});
+
+function loadPendingVerifications() {
+    // This would typically fetch from an API endpoint
+    // For now, we'll simulate with static data
+    const verifications = [
+        {
+            id: 1,
+            donor_id: 'D1001',
+            donor_name: 'John Smith',
+            document_type: 'Aadhar Card',
+            document_number: 'XXXX-XXXX-1234',
+            submitted_on: '2023-11-15',
+            status: 'pending'
+        },
+        {
+            id: 2,
+            donor_id: 'D1002',
+            donor_name: 'Maria Garcia',
+            document_type: 'Passport',
+            document_number: 'A12345678',
+            submitted_on: '2023-11-14',
+            status: 'pending'
+        }
+    ];
+    
+    const tbody = document.getElementById('verification-table-body');
+    tbody.innerHTML = verifications.map(verification => `
+        <tr data-verification-id="${verification.id}">
+            <td>${verification.donor_id}</td>
+            <td>${verification.donor_name}</td>
+            <td>${verification.document_type}</td>
+            <td>${verification.document_number}</td>
+            <td>${verification.submitted_on}</td>
+            <td><span class="status status-pending">Pending</span></td>
+            <td>
+                <button class="btn btn-sm view-verification-btn" data-verification-id="${verification.id}">View</button>
+                <button class="btn btn-primary btn-sm verify-btn" data-verification-id="${verification.id}">Verify</button>
+                <button class="btn btn-secondary btn-sm reject-btn" data-verification-id="${verification.id}">Reject</button>
+            </td>
+        </tr>
+    `).join('');
+    
+    // Add event listeners
+    document.querySelectorAll('.view-verification-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const verificationId = this.getAttribute('data-verification-id');
+            viewVerification(verificationId);
+        });
+    });
+    
+    document.querySelectorAll('.verify-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const verificationId = this.getAttribute('data-verification-id');
+            verifyIdentity(verificationId, 'verify');
+        });
+    });
+    
+    document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const verificationId = this.getAttribute('data-verification-id');
+            verifyIdentity(verificationId, 'reject');
+        });
+    });
+}
+
+function viewVerification(verificationId) {
+    // In production, fetch actual verification details
+    document.getElementById('verification-details').innerHTML = `
+        <div class="verification-info">
+            <p><strong>Document Image Preview:</strong></p>
+            <div style="text-align: center; margin: 20px 0;">
+                <img src="/static/images/sample-id.jpg" style="max-width: 100%; max-height: 300px; border: 1px solid #ddd;">
+            </div>
+            <p><strong>Instructions:</strong> Verify that the document image matches the provided details and is clearly visible.</p>
+        </div>
+    `;
+    document.getElementById('verification-modal').classList.add('active');
+}
+
+function verifyIdentity(verificationId, action) {
+    const message = action === 'verify' 
+        ? 'Are you sure you want to verify this identity proof?'
+        : 'Are you sure you want to reject this identity proof?';
+    
+    if (confirm(message)) {
+        fetch(`/api/admin/verify-identity/${verificationId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: action,
+                rejection_reason: action === 'reject' ? 'Document not clear' : ''
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert(data.message);
+                loadPendingVerifications();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing verification');
+        });
+    }
+}
+
+// Close modal
+document.querySelectorAll('.close-modal').forEach(button => {
+    button.addEventListener('click', function() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.classList.remove('active');
+        });
+    });
+});
+</script>
+{% endblock %}

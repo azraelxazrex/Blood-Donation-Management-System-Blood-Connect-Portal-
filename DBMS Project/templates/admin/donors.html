@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}Donor Management - LifeBlood Bank{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-tint"></i> LifeBlood Admin</h2>
+        </div>
+        
+        <div class="sidebar-menu">
+            <a href="{{ url_for('admin_dashboard') }}" class="menu-item">
+                <i class="fas fa-th-large"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin_donors') }}" class="menu-item active">
+                <i class="fas fa-users"></i> Donor Management
+            </a>
+            <a href="{{ url_for('admin_inventory') }}" class="menu-item">
+                <i class="fas fa-warehouse"></i> Inventory
+            </a>
+            <a href="{{ url_for('admin_requests') }}" class="menu-item">
+                <i class="fas fa-hand-holding-heart"></i> Requests
+            </a>
+            <a href="{{ url_for('admin_analytics') }}" class="menu-item">
+                <i class="fas fa-chart-bar"></i> Analytics
+            </a>
+            <a href="{{ url_for('logout') }}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="topbar">
+            <div class="topbar-left">
+                <h1>Donor Management</h1>
+            </div>
+            
+            <div class="topbar-right">
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <div>{{ current_user.first_name }} {{ current_user.last_name }}</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="page-title">
+                <h2>Registered Donors</h2>
+                <button class="btn btn-primary" id="add-donor-btn">Add New Donor</button>
+            </div>
+            
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Donor List</h3>
+                    <div>
+                        <input type="text" id="donor-search" class="form-control" placeholder="Search donors..." style="width: 250px;">
+                    </div>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Blood Group</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                            <th>Identity Verified</th>
+                        </tr>
+                    </thead>
+                    <tbody id="donors-table-body">
+                        {% for donor in donors %}
+                        <tr data-donor-id="{{ donor.id }}">
+                            <td>D{{ donor.id }}</td>
+                            <td>{{ donor.first_name }} {{ donor.last_name }}</td>
+                            <td>{{ donor.email }}</td>
+                            <td>{{ donor.phone or 'N/A' }}</td>
+                            <td>{{ donor.donor_profile.blood_group if donor.donor_profile else 'N/A' }}</td>
+                            <td>
+                                <span class="status status-{{ 'eligible' if donor.donor_profile and donor.donor_profile.is_eligible else 'pending' }}">
+                                    {{ 'Eligible' if donor.donor_profile and donor.donor_profile.is_eligible else 'Pending' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm view-donor-btn" data-donor-id="{{ donor.id }}">View</button>
+                                <button class="btn btn-secondary btn-sm edit-donor-btn" data-donor-id="{{ donor.id }}">Edit</button>
+                            </td>
+                            <td>
+    {% set identity_proof = donor.identity_proofs|selectattr("status", "equalto", "verified")|first %}
+    {% if identity_proof %}
+    <span class="status status-completed">Verified</span>
+    {% else %}
+    <span class="status status-pending">Pending</span>
+    {% endif %}
+</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Donor Modal -->
+<div id="add-donor-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add New Donor</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="add-donor-form">
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="new-first-name">First Name</label>
+                        <input type="text" id="new-first-name" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="new-last-name">Last Name</label>
+                        <input type="text" id="new-last-name" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-email">Email Address</label>
+                <input type="email" id="new-email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-phone">Phone Number</label>
+                <input type="tel" id="new-phone" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-blood-group">Blood Group</label>
+                <select id="new-blood-group" class="form-control" required>
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-password">Temporary Password</label>
+                <input type="password" id="new-password" class="form-control" value="temp123" required>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Add Donor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- View Donor Modal -->
+<div id="view-donor-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Donor Details</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div id="donor-details">
+            <!-- Donor details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Edit Donor Modal -->
+<div id="edit-donor-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Donor</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="edit-donor-form">
+            <input type="hidden" id="edit-donor-id">
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="edit-first-name">First Name</label>
+                        <input type="text" id="edit-first-name" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="edit-last-name">Last Name</label>
+                        <input type="text" id="edit-last-name" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-email">Email Address</label>
+                <input type="email" id="edit-email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-phone">Phone Number</label>
+                <input type="tel" id="edit-phone" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-blood-group">Blood Group</label>
+                <select id="edit-blood-group" class="form-control" required>
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-eligibility">Eligibility Status</label>
+                <select id="edit-eligibility" class="form-control" required>
+                    <option value="true">Eligible</option>
+                    <option value="false">Not Eligible</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Update Donor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Add Donor Functionality
+document.getElementById('add-donor-btn').addEventListener('click', function() {
+    document.getElementById('add-donor-modal').classList.add('active');
+});
+
+// View Donor Functionality
+document.querySelectorAll('.view-donor-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const donorId = this.getAttribute('data-donor-id');
+        fetchDonorDetails(donorId);
+    });
+});
+
+// Edit Donor Functionality
+document.querySelectorAll('.edit-donor-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const donorId = this.getAttribute('data-donor-id');
+        fetchDonorForEdit(donorId);
+    });
+});
+
+// Close Modals
+document.querySelectorAll('.close-modal').forEach(button => {
+    button.addEventListener('click', function() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.classList.remove('active');
+        });
+    });
+});
+
+// Add Donor Form Submission
+document.getElementById('add-donor-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        first_name: document.getElementById('new-first-name').value,
+        last_name: document.getElementById('new-last-name').value,
+        email: document.getElementById('new-email').value,
+        phone: document.getElementById('new-phone').value,
+        blood_group: document.getElementById('new-blood-group').value,
+        password: document.getElementById('new-password').value
+    };
+    
+    fetch('/api/admin/add-donor', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(data.message);
+            document.getElementById('add-donor-modal').classList.remove('active');
+            document.getElementById('add-donor-form').reset();
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding donor');
+    });
+});
+
+// Edit Donor Form Submission
+document.getElementById('edit-donor-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const donorId = document.getElementById('edit-donor-id').value;
+    const formData = {
+        first_name: document.getElementById('edit-first-name').value,
+        last_name: document.getElementById('edit-last-name').value,
+        email: document.getElementById('edit-email').value,
+        phone: document.getElementById('edit-phone').value,
+        blood_group: document.getElementById('edit-blood-group').value,
+        is_eligible: document.getElementById('edit-eligibility').value === 'true'
+    };
+    
+    fetch(`/api/admin/update-donor/${donorId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(data.message);
+            document.getElementById('edit-donor-modal').classList.remove('active');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating donor');
+    });
+});
+
+function fetchDonorDetails(donorId) {
+    fetch(`/api/admin/get-donor/${donorId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            document.getElementById('donor-details').innerHTML = `
+                <div class="donor-info">
+                    <p><strong>Name:</strong> ${data.first_name} ${data.last_name}</p>
+                    <p><strong>Email:</strong> ${data.email}</p>
+                    <p><strong>Phone:</strong> ${data.phone || 'N/A'}</p>
+                    <p><strong>Blood Group:</strong> ${data.blood_group || 'N/A'}</p>
+                    <p><strong>Status:</strong> <span class="status status-${data.is_eligible ? 'eligible' : 'pending'}">${data.is_eligible ? 'Eligible' : 'Not Eligible'}</span></p>
+                    <p><strong>Weight:</strong> ${data.weight || 'N/A'}</p>
+                    <p><strong>Height:</strong> ${data.height || 'N/A'}</p>
+                    <p><strong>Health Conditions:</strong> ${data.health_conditions || 'None reported'}</p>
+                </div>
+            `;
+            document.getElementById('view-donor-modal').classList.add('active');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error fetching donor details');
+    });
+}
+
+function fetchDonorForEdit(donorId) {
+    fetch(`/api/admin/get-donor/${donorId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            document.getElementById('edit-donor-id').value = data.id;
+            document.getElementById('edit-first-name').value = data.first_name;
+            document.getElementById('edit-last-name').value = data.last_name;
+            document.getElementById('edit-email').value = data.email;
+            document.getElementById('edit-phone').value = data.phone || '';
+            document.getElementById('edit-blood-group').value = data.blood_group || '';
+            document.getElementById('edit-eligibility').value = data.is_eligible ? 'true' : 'false';
+            document.getElementById('edit-donor-modal').classList.add('active');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error fetching donor details for edit');
+    });
+}
+
+// Search functionality
+document.getElementById('donor-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#donors-table-body tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+</script>
+
+<style>
+.donor-info p {
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.donor-info p:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}
